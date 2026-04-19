@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-select=none">
-  <title>Work & Break Timer</title>
+  <title>Focus Timer</title>
   <style>
     :root {
       --work-color: #5b9bbd;
@@ -11,7 +11,6 @@
       --reset-red: #ff4d4d;
       --reset-red-dark: #d93636;
       --action-blue: #5b9bbd;
-      --action-blue-dark: #4a89a8;
     }
 
     body {
@@ -19,19 +18,16 @@
       font-family: 'Segoe UI', system-ui, sans-serif;
       overflow: hidden;
       background: #222;
-      user-select: none;
       -webkit-tap-highlight-color: transparent;
     }
 
+    /* --- 核心布局：默认电脑版（左右） --- */
     .container {
       display: flex;
-      flex-direction: column;
+      flex-direction: row; /* 电脑默认左右 */
       height: 100vh;
       width: 100vw;
-      /* 核心修改：为底部按钮留出固定空间，防止内容被遮挡 */
-      padding-bottom: 120px; 
-      box-sizing: border-box;
-      background: #222;
+      transition: all 0.5s ease;
     }
 
     .panel {
@@ -46,109 +42,103 @@
       padding: 20px;
     }
 
-    .panel.active {
-      opacity: 1;
-      flex: 1.2;
-    }
-
+    .panel.active { opacity: 1; flex: 1.2; }
     .work { background: var(--work-color); }
     .break { background: var(--break-color); }
 
-    /* 标题：往上退一点 */
     .title { 
-      font-size: 18px; 
-      letter-spacing: 8px; 
-      margin-bottom: 15px; 
+      font-size: 24px; 
+      letter-spacing: 10px; 
+      margin-bottom: 30px; 
       font-weight: 700;
       text-transform: uppercase;
-      opacity: 0.9;
     }
 
-    /* 时间数字：确保足够醒目但不占满全屏 */
     .time {
-      font-size: 18vw; 
+      font-size: 100px;
       font-weight: 600;
       text-align: center;
-      transition: all 0.3s;
-      font-variant-numeric: tabular-nums;
       outline: none;
-      /* 限制最大高度，防止撑开 */
-      line-height: 1;
+      font-variant-numeric: tabular-nums;
     }
 
-    /* --- 手机版大按钮区 --- */
+    /* 电脑版按钮：浮动在中间下方 */
     .controls {
       position: fixed;
-      bottom: 0; /* 贴齐底部 */
-      left: 0;
-      width: 100%;
-      height: 120px; /* 按钮区的固定高度 */
+      bottom: 40px;
+      left: 50%;
+      transform: translateX(-50%);
       display: flex;
-      justify-content: center;
-      align-items: center;
-      gap: 15px;
-      z-index: 90;
-      padding: 0 20px 20px 20px;
-      box-sizing: border-box;
-      /* 这里的背景可以微调，或者保持透明 */
-      background: linear-gradient(transparent, rgba(0,0,0,0.2)); 
+      gap: 20px;
+      z-index: 100;
     }
 
     button {
-      flex: 1;
-      height: 65px; 
+      padding: 15px 40px;
       font-size: 18px;
       border: none;
-      border-radius: 35px;
+      border-radius: 40px;
       cursor: pointer;
       background: white;
       color: #333;
       font-weight: 700;
-      box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+      box-shadow: 0 5px 20px rgba(0,0,0,0.3);
       transition: all 0.2s;
     }
 
-    button:active { 
-      transform: scale(0.95);
-      background: #eee;
+    /* --- 手机版专用样式 (屏幕宽度小于 768px) --- */
+    @media (max-width: 768px) {
+      .container {
+        flex-direction: column; /* 手机强制上下 */
+        /* 关键：给底部留出 140px 的空间，把内容顶上去 */
+        height: calc(100vh - 140px); 
+      }
+
+      .title { font-size: 18px; margin-bottom: 10px; }
+      .time { font-size: 18vw; }
+
+      /* 手机版按钮座：固定在屏幕最下方，不透明背景 */
+      .controls {
+        position: fixed;
+        bottom: 0;
+        left: 0;
+        transform: none;
+        width: 100%;
+        height: 140px; /* 固定的按钮位子 */
+        background: #222; /* 按钮区的底座背景，不挡内容 */
+        display: flex;
+        justify-content: center;
+        align-items: center;
+        padding: 0 20px 20px 20px;
+        box-sizing: border-box;
+        gap: 12px;
+      }
+
+      button {
+        flex: 1; /* 按钮撑满宽度，防止点不到 */
+        height: 65px;
+        padding: 0;
+        font-size: 18px;
+        border-radius: 20px;
+      }
     }
 
-    /* 确定类按钮：触碰不发白，变深 */
+    /* 按钮特殊交互 */
     .btn-confirm { background: var(--reset-red); color: white; }
     .btn-confirm:active { background: var(--reset-red-dark) !important; }
-
-    .btn-action { background: var(--action-blue); color: white; }
-    .btn-action:active { background: var(--action-blue-dark) !important; }
-
-    /* 弹窗及其他细节 */
+    
     .modal-overlay {
       position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-      background: rgba(0,0,0,0.8);
+      background: rgba(0,0,0,0.85);
       display: none; justify-content: center; align-items: center;
       z-index: 1000;
-      backdrop-filter: blur(5px);
     }
+    .modal { background: white; padding: 30px; border-radius: 20px; text-align: center; width: 80%; max-width: 320px; }
+    .modal-btns { display: flex; flex-direction: column-reverse; gap: 10px; margin-top: 20px; }
+    .modal-btns button { width: 100%; height: 50px; }
 
-    .modal {
-      background: white; padding: 30px; border-radius: 25px;
-      text-align: center; width: 80%; max-width: 350px;
-    }
-
-    .modal p { color: #222; font-size: 18px; margin-bottom: 25px; }
-    .modal-btns { display: flex; gap: 10px; flex-direction: column-reverse; }
-    .modal-btns button { width: 100%; height: 55px; }
-
-    .menu-btn {
-      position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.8);
-      width: 45px; height: 45px; line-height: 45px; text-align: center;
-      border-radius: 50%; z-index: 101; font-size: 20px;
-    }
-
-    .menu {
-      position: fixed; top: 75px; right: 20px; background: white;
-      padding: 20px; border-radius: 15px; display: none; z-index: 100;
-      box-shadow: 0 10px 30px rgba(0,0,0,0.2); width: 220px;
-    }
+    .menu-btn { position: fixed; top: 20px; right: 20px; background: rgba(255,255,255,0.8); width: 45px; height: 45px; line-height: 45px; text-align: center; border-radius: 50%; z-index: 101; font-size: 20px; }
+    .menu { position: fixed; top: 75px; right: 20px; background: white; padding: 20px; border-radius: 15px; display: none; z-index: 100; width: 200px; }
   </style>
 </head>
 
@@ -156,30 +146,20 @@
 
 <div class="modal-overlay" id="resetModal">
   <div class="modal">
-    <p>计时器正在运行<br>确定要重置吗？</p>
+    <p style="color:#333; font-weight:bold;">计时正在运行<br>确定要重置吗？</p>
     <div class="modal-btns">
-      <button onclick="closeResetModal()">取消</button>
+      <button onclick="closeResetModal()" style="background:#eee; color:#333;">取消</button>
       <button class="btn-confirm" onclick="confirmReset()">确定</button>
     </div>
   </div>
 </div>
 
-<div class="modal-overlay" id="errorModal">
-  <div class="modal">
-    <p>时间不能设置为 00:00 哦</p>
-    <div class="modal-btns">
-      <button class="btn-action" onclick="closeErrorModal()">我知道了</button>
-    </div>
-  </div>
-</div>
-
 <div class="menu-btn" onclick="toggleMenu(event)">⚙️</div>
-
 <div class="menu" id="menu">
-  <label style="color:#666; font-size:13px; font-weight:bold;">WORK 主题色</label>
-  <input type="color" id="workColor" value="#5b9bbd" style="width:100%; height:40px; border:none; margin-bottom:15px;">
-  <label style="color:#666; font-size:13px; font-weight:bold;">BREAK 主题色</label>
-  <input type="color" id="breakColor" value="#5fbf8f" style="width:100%; height:40px; border:none;">
+  <label style="color:#666; font-size:12px;">WORK COLOR</label>
+  <input type="color" id="workColor" value="#5b9bbd" style="width:100%; margin-bottom:10px;">
+  <label style="color:#666; font-size:12px;">BREAK COLOR</label>
+  <input type="color" id="breakColor" value="#5fbf8f" style="width:100%;">
 </div>
 
 <div class="container">
@@ -195,13 +175,12 @@
 </div>
 
 <div class="controls">
-  <button onclick="start()">Start</button>
-  <button onclick="pause()">Pause</button>
-  <button onclick="handleResetClick()">Reset</button>
+  <button onclick="start()" style="background:#fff;">Start</button>
+  <button onclick="pause()" style="background:#fff;">Pause</button>
+  <button onclick="handleResetClick()" style="background:#fff;">Reset</button>
 </div>
 
 <script>
-// 核心逻辑保持不变
 let defaultWork = 25 * 60, defaultBreak = 5 * 60;
 let workLeft = defaultWork, breakLeft = defaultBreak;
 let isWorkMode = true, timer = null;
@@ -209,46 +188,19 @@ let sound = new Audio("https://cdn.pixabay.com/download/audio/2022/03/15/audio_c
 
 const workDisplay = document.getElementById("workTime"), breakDisplay = document.getElementById("breakTime");
 const workPanel = document.getElementById("workPanel"), breakPanel = document.getElementById("breakPanel");
-const resetModal = document.getElementById("resetModal"), errorModal = document.getElementById("errorModal"), menu = document.getElementById("menu");
+const resetModal = document.getElementById("resetModal"), menu = document.getElementById("menu");
 
-function restrictInput(e) {
-  const selection = window.getSelection().toString();
-  if ((e.key === "Backspace" || e.key === "Delete") && selection.includes(":")) { e.preventDefault(); return; }
-  let allowed = ['0','1','2','3','4','5','6','7','8','9','Backspace','Delete','ArrowLeft','ArrowRight','Tab'];
-  if (e.key === "Enter") { e.preventDefault(); e.target.blur(); return; }
-  if (!allowed.includes(e.key)) e.preventDefault();
-}
-
-function handleInput(e) { if (!e.target.innerText.includes(":")) e.target.innerText = "00:00"; }
+function format(s) { return String(Math.floor(s/60)).padStart(2,'0') + ":" + String(s%60).padStart(2,'0'); }
+function parse(t) { let p = t.split(":"); return (parseInt(p[0])||0)*60 + (parseInt(p[1])||0); }
 
 [workDisplay, breakDisplay].forEach(el => {
   el.addEventListener("focus", () => { pause(); workPanel.classList.add("active"); breakPanel.classList.add("active"); });
-  el.addEventListener("keydown", restrictInput);
-  el.addEventListener("input", handleInput);
-  el.addEventListener("blur", saveTime);
-});
-
-function saveTime() {
-  let w = validate(workDisplay.innerText), b = validate(breakDisplay.innerText);
-  if (w === "00:00" || b === "00:00") {
-    errorModal.style.display = "flex";
-    workDisplay.innerText = format(defaultWork); breakDisplay.innerText = format(defaultBreak);
-  } else {
-    workDisplay.innerText = w; breakDisplay.innerText = b;
-    defaultWork = parse(w); defaultBreak = parse(b);
+  el.addEventListener("blur", () => {
+    defaultWork = parse(workDisplay.innerText); defaultBreak = parse(breakDisplay.innerText);
     workLeft = defaultWork; breakLeft = defaultBreak;
-  }
-  updateVisuals();
-}
-
-function validate(t) {
-  let p = t.split(":");
-  let m = Math.min(parseInt(p[0]) || 0, 999), s = Math.min(parseInt(p[1]) || 0, 59);
-  return String(m).padStart(2,'0') + ":" + String(s).padStart(2,'0');
-}
-
-function parse(t) { let p = t.split(":"); return (parseInt(p[0])||0)*60 + (parseInt(p[1])||0); }
-function format(s) { return String(Math.floor(s/60)).padStart(2,'0') + ":" + String(s%60).padStart(2,'0'); }
+    updateVisuals();
+  });
+});
 
 function update() {
   if (isWorkMode) {
@@ -266,13 +218,12 @@ function updateVisuals() {
   else { breakPanel.classList.add("active"); workPanel.classList.remove("active"); }
 }
 
-function start() { if (!timer) { workDisplay.contentEditable = breakDisplay.contentEditable = false; timer = setInterval(update, 1000); updateVisuals(); } }
-function pause() { clearInterval(timer); timer = null; workDisplay.contentEditable = breakDisplay.contentEditable = true; }
+function start() { if (!timer) { timer = setInterval(update, 1000); updateVisuals(); } }
+function pause() { clearInterval(timer); timer = null; }
 function handleResetClick() { if (timer) resetModal.style.display = "flex"; else performReset(); }
 function confirmReset() { resetModal.style.display = "none"; performReset(); }
 function performReset() { pause(); isWorkMode = true; workLeft = defaultWork; breakLeft = defaultBreak; workDisplay.innerText = format(workLeft); breakDisplay.innerText = format(breakLeft); updateVisuals(); }
 function closeResetModal() { resetModal.style.display = "none"; }
-function closeErrorModal() { errorModal.style.display = "none"; }
 function toggleMenu(e) { e.stopPropagation(); menu.style.display = menu.style.display === "block" ? "none" : "block"; }
 
 window.onclick = (e) => { if (!menu.contains(e.target)) menu.style.display = "none"; };
